@@ -1,0 +1,78 @@
+# 初始化数据包(请手动执行)
+function queryset:_init
+
+------------------------------------------------------------------------
+# 声明一个选择集变量
+function queryset:_vars {name:"a", next:{}}
+# 声明并实例化了一个选择集变量，命名为a
+
+# 声明多个选择集变量
+function queryset:_vars {name:"a", next:{name:"b", next:{name:"c"}}}
+# 声明并实例化了三个选择集变量，分别命名为a,b,c
+
+# 选择集变量不能重复命名
+# 如果_vars有重复的命名
+# 则不会实例化新变量，仍然使用旧的变量
+
+# 声明匿名选择集变量
+function queryset:_vars {name:"",next:{name:""}}
+# 声明并实例化了两个匿名选择集变量
+# 获取第i个匿名选择集的变量名(由系统分配)
+data get storage queryset:io result[i]
+
+------------------------------------------------------------------------
+# 计算选择集表达式
+# 可选运算：and, or, differ, subof, clear, elmof, append, remove, print, run
+
+# 例：计算差集
+function queryset:_expr {from:"a", by:"b", to:"c", do:"differ"}
+# 相当于 c = (a-b)
+
+# 例：判断子集
+function queryset:_expr {from:"a", by:"b", to:"", do:"subof"}
+# 判断b是否是a的子集，输出到<res,int>
+# 空字符串代表缺省
+
+# 例：判断子元素
+function queryset:_expr {from:"a", by:"b", to:"", do:"elmof"}
+# 判断b是否是a的元素，输出到<res,int>
+# 注意，这里的b仍然只能是选择集
+# 如果要判断其它实体，请使用queryset:_method
+
+# 例：添加元素
+function queryset:_expr {from:"a", by:"b", to:"a", do:"append"}
+# 把b添加为a的元素
+# 注意，这里的b仍然只能是选择集
+# 如果要添加其它实体，请使用queryset:_method
+
+# 例：选择集输出
+function queryset:_expr {from:"a", by:"", to:"", do:"print"}
+# 输出选择集a
+
+# 例：遍历选择集执行命令
+data modify storage queryset:io input set value {run:"say hi"}
+function queryset:_expr {from:"a", by:"", to:"", do:"run"}
+
+------------------------------------------------------------------------
+# 调用选择集方法
+# 可选方法：clear, print, run, elmof, append, remove, and, or, differ, subof
+
+# 例：清空选择集
+function queryset:_method {from:"a", do:"clear"}
+
+# 例：实体加入选择集
+execute as @e[tag=input] run function queryset:_method {from:"a", do:"append"}
+
+# 例：遍历选择集实体执行命令
+data modify storage queryset:io input set value {run:"say hi"}
+function queryset:_method {from:"a", do:"run"}
+
+# 例：判断实体是不是选择集元素
+execute as @e[tag=input,limit=1] run function queryset:_method {from:"a", do:"elmof"}
+scoreboard players get res int
+
+------------------------------------------------------------------------
+# 删除选择集
+function queryset:_unvars {name:"a", next:{name:"b"}}
+# 删除名为a,b的选择集
+# 如果选择集本就不存在，则忽略

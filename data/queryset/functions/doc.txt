@@ -1,0 +1,138 @@
+#选择集的数据模板
+{
+	name:"queryset_1",
+	gc_on:1b,
+	tags:["string"]
+}
+
+#选择集的临时对象
+{
+	[queryset:io set],
+	[queryset:io set_keys],
+	<queryset_gc,int>
+	<queryset_cnt,int>
+}
+
+# 不同的选择集name不能重复
+# 禁止把name命名为"unnamed_queryset_{}"的格式
+# 如果name缺省，由系统分配"unnamed_queryset_{}"格式的命名
+
+# gc_on:1b可以打开该选择集的垃圾回收
+# 垃圾回收机制是：每次_run遍历实体执行命令，记录该实体坐标
+# 如果某次_run找不到该实体，就去上次记录的实体坐标
+# 检查这个坐标的区块是否加载，如果区块加载则认定实体死亡
+# 把死亡实体从选择集中删去
+# 对于已生成的选择集，想要开关垃圾回收，修改其记分板queryset_gc为1/0即可
+
+# tags:[]与tag=中的标签相同
+# tags中的所有字符串会被追加为选择集的tag=
+
+# 初始化数据包(请手动执行)
+function queryset:_init
+
+# 输出数据包版本
+function queryset:_version
+scoreboard players get queryset_version int
+
+# 生成一个选择集
+data modify storage queryset:io input set value {name:"queryset_1",gc_on:1b}
+function queryset:_new
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:io result
+execute as 0-0-0-8593-1 on origin run say hi
+
+# 选择上面生成的选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run say hi
+
+# 让一个已有marker实体成为选择集
+data modify storage queryset:io input set value {name:"queryset_2",gc_on:1b}
+execute as @e[type=marker,limit=1] run function queryset:_be
+
+# 删除一个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_2.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_del
+
+# 临时化一个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+
+# 储存化一个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_store
+
+# 输出一个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+function queryset:_print
+
+# 输出选择集的另一种方法，不需要临时化
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_print_as
+
+# 让实体加入选择集
+summon marker 0 11 0 {Tags:["tmp"],CustomName:'{"text":"A"}'}
+summon marker 0 11 0 {Tags:["tmp"],CustomName:'{"text":"B"}'}
+summon marker 0 11 0 {Tags:["tmp"],CustomName:'{"text":"C"}'}
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+execute as @e[tag=tmp] run function queryset:_append
+execute as 0-0-0-8593-1 on origin run function queryset:_store
+tag @e remove tmp
+
+# 判断一个实体是否是选择集的元素
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+execute as @e[tag=input,limit=1] run function queryset:_elmof
+scoreboard players get res int
+
+# 遍历选择集中的实体执行命令
+# 注意，queryset:_run会修改0-0-0-8593-1的Thrower，下文不能直接继续选中该选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+data modify storage queryset:io input set value {run:"say hi"}
+function queryset:_run
+# 在_run中执行的函数中再次_run嵌套，会以队列的方式按广度优先搜索顺序执行命令
+# 这点与execute run顺序相同
+# input中的其它数据也会被_run传递
+# 在执行的函数上下文中，可以使用data get storage queryset:io run_params找到这些数据
+
+# 清空一个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+function queryset:_clear
+execute as 0-0-0-8593-1 on origin run function queryset:_store
+
+# 清空选择集的另一种方式，不需要临时化和储存化
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_clear_as
+
+# 判断一个选择集是否是另一个选择集的子集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_2.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_subof
+scoreboard players get res int
+
+# 计算两个选择集的交集，赋值给第三个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_2.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_and
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_3.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_store
+
+# 计算两个选择集的并集，赋值给第三个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_2.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_or
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_3.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_store
+
+# 计算两个选择集的差集，赋值给第三个选择集
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_1.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_get
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_2.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_differ
+data modify entity 0-0-0-8593-1 Thrower set from storage queryset:class queryset_3.uuid
+execute as 0-0-0-8593-1 on origin run function queryset:_store
